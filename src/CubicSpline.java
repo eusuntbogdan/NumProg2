@@ -106,7 +106,6 @@ public class CubicSpline implements InterpolationMethod {
         d[0] = (3/h) * (y[2] - y[0] - (h/3) * yprime[0]);
         d[n-2] = (3/h) * (y[n] - y[n-2] - (h/3) * yprime[n]);
 
-        System.out.println(Arrays.toString(d));
         //Initialise tridiagonal matrix
         for (int i = 0; i < n - 1; i++) {
             c[i] = 1;
