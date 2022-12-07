@@ -91,37 +91,46 @@ public class CubicSpline implements InterpolationMethod {
      * berechnet werden muessen.
      */
     public void computeDerivatives() {
-        int[] a = new int[n];
-        int[] b = new int[n];
-        int[] c = new int[n];
-        double[] x = new double[n - 1];
-        double constant = 3 / h;
+        double[] c = new double[n - 1];
+        double[] a = new double[n - 1];
+        double[] b = new double[n - 1];
+        double[] d = new double[n - 1];
+
+        //Compute solution vector
+        for (int i = 1; i < n - 2; i++) {
+            d[i] = y[i + 2] - y[i];
+        }
+        for (int i = 1; i < n - 2; i++) {
+            d[i] *= 3 / h;
+        }
+        d[0] = (3/h) * (y[2] - y[0] - (h/3) * yprime[0]);
+        d[n-2] = (3/h) * (y[n] - y[n-2] - (h/3) * yprime[n]);
+
+        System.out.println(Arrays.toString(d));
+        //Initialise tridiagonal matrix
         for (int i = 0; i < n - 1; i++) {
-            x[i] = y[i + 2] - y[i];
-        }
-        x[0] -= (h / 3) * yprime[0];
-        x[x.length - 1] -= (h / 3) * yprime[n];
-        for (int i = 0; i < n; i++) {
-            a[i] = 1;
-            b[i] = 4;
             c[i] = 1;
+            b[i] = 4;
+            a[i] = 1;
         }
-        c[0] = c[0] / b[0];
-        x[0] = x[0] / b[0];
-        for (int i = 1; i < x.length; i++) {
-            double v = a[i] * x[i - 1];
-            double m = 1.0 / (b[i] - v);
-            c[i] *= m;
-            x[i] = (x[i] - v) * m;
+
+        //Solve tridiagonal matrix equation A * v = x
+        //Result will be in x at the end
+        for (int i = 1; i < d.length; i++) {
+            double m = a[i - 1] / b[i-1];
+            b[i] = b[i] - m * c[i-1];
+            d[i] = d[i] - d[i-1] * m;
         }
-        for (int i = x.length - 2; i >= 0; i--) {
-            x[i] -= c[i] * x[i + 1];
-        }
-        if (x.length > 1) {
-            x[0] -= c[0] * x[1];
+
+        double[] x = Arrays.copyOf(b, b.length);
+        x[x.length - 1] = d[d.length - 1] / b[b.length - 1];
+
+        for (int i = d.length - 2; i >= 0; i--) {
+            x[i] = (d[i] - c[i] * x[i+1])/b[i];
         }
         System.arraycopy(x, 0, yprime, 1, x.length);
     }
+
 
     /**
      * {@inheritDoc} Liegt z ausserhalb der Stuetzgrenzen, werden die
@@ -145,7 +154,7 @@ public class CubicSpline implements InterpolationMethod {
             }
         }
         double t = (z - (a + i * h)) / h;
-        double result0 = y[i] + y[i] * ((-3) * t * t + 2 * t * t * t);
+        double result0 = y[i] * (1 + (-3) * t * t + 2 * t * t * t);
         double result1 = y[i + 1] * (3 * t * t - 2 * t * t * t);
         double result2 = h * yprime[i] * (t - 2 * t * t + t * t * t);
         double result3 = h * yprime[i + 1] * (-t * t + t * t * t);
